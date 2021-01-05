@@ -1,0 +1,343 @@
+<!doctype html> 
+<html lang="es"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Making your first Phaser 3 Game - Part 11</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes, maximum-scale=3, minimum-scale=0.1">
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.50.0/dist/phaser.min.js"></script>
+    <style type="text/css">
+        *{margin:0; padding:0; box-sizing:border-box;}
+        #juego{border:1px solid black;width:691px;height:411px;}
+    </style>
+</head>
+<body>
+<!--
+    <div id="juego"></div>
+-->
+<script type="text/javascript">
+
+     var vwidth = window.innerWidth;
+     var vheight = window.innerHeight;
+     console.log(vwidth,vheight);
+    // var juego=document.querySelector("#juego");
+    // console.log(juego);
+    // juego.style.width=vwidth+"px";
+    // juego.style.height=vheight+"px";
+
+var config = {
+    type: Phaser.AUTO,
+    width: 731,
+    height: 411,
+    scale:{
+        mode: Phaser.Scale.FIT,
+       // parent: 'juego',
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300 },
+            debug: false
+        }
+    },
+    input:{
+        activePointers:3
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var player;
+var stars;
+var bombs;
+var platforms;
+var cursors;
+var score = 0;
+var gameOver = false;
+var scoreText;
+///
+var salto=false;
+var moverLeft=false;
+var moverRight=false;
+
+var game = new Phaser.Game(config);
+
+function preload (){
+    //se cargan los elementos necesarios ara el juego
+    this.load.image('sky', 'assets/sky2.png');
+    this.load.image('ground', 'assets/platform.png');
+    this.load.image('star', 'assets/star.png');
+    this.load.image('bomb', 'assets/bomb.png');
+    this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+
+    this.load.image('btn1','assets/btn1.png');
+    this.load.image('btn2','assets/btn1.png');
+    this.load.image('btn3','assets/btn1.png');
+    this.load.image('fulls','assets/fulls.png');
+}
+
+function colocarFondo(a){
+    //Colocamos el fondo
+    a.add.image(300, 200, 'sky');
+}
+
+function colocarPlataformas(a){
+    //  The platforms group contains the ground and the 2 ledges we can jump on
+    platforms = a.physics.add.staticGroup();
+
+    //  Here we create the ground.
+    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    platforms.create(400, 360, 'ground').setScale(2).refreshBody();
+    platforms.setAlpha(0);
+    //  Now let's create some ledges
+   // platforms.create(600, 400, 'ground');
+  //  platforms.create(50, 250, 'ground');
+  //  platforms.create(750, 220, 'ground');
+}
+
+function colocarBotonIzq(a){
+    var btn1= a.add.image(35,375,'btn1').setScale(0.20).setFlipX(true).setInteractive();
+    btn1.setAlpha(0.5);
+    //detectamos cuado opriman el boton1
+    btn1.on('pointerdown', function (pointer) {
+       // console.log("oprimió el boton1");
+        moverLeft=true;
+    });
+    btn1.on('pointerup', function (pointer) {
+       // console.log("solto el boton1");
+        moverLeft=false;
+    });
+    btn1.on('pointerout', function(event){
+       // console.log("puntero afuera");
+        moverLeft=false;
+    });
+    btn1.on('pointerover', function(event){
+        //console.log("puntero encima");
+        moverRight=false;
+        moverLeft=true;
+    });
+}
+
+function colocarBotonDer(a){
+    //colocamos el btn2
+    var btn2= a.add.image(100,375,'btn2').setScale(0.20).setInteractive();
+    btn2.setAlpha(0.5);
+    //detectamos cuado opriman el boton2
+    btn2.on('pointerdown', function (pointer) {
+       // console.log("oprimió el boton2");
+        moverRight=true;
+    });
+    btn2.on('pointerup', function (pointer) {
+       // console.log("solto el boton2");
+        moverRight=false;
+    });
+    btn2.on('pointerout', function(event){
+       // console.log("puntero afuera");
+        moverRight=false;
+    });
+    btn2.on('pointerover', function(event){
+        //console.log("sobre");
+        moverLeft=false;
+        moverRight=true;
+    });
+}
+
+function colocarBotonSalto(a){
+    //colocamos el btn3
+   var btn3= a.add.image(695,375,'btn3').setScale(0.20).setAngle(-90).setInteractive();
+   btn3.setAlpha(0.5);
+   //detectamos cuando opriman el boton3
+    btn3.on('pointerdown',function(pointer){
+       // console.log("oprimio el boton 3");
+        salto=true;
+    });
+}
+
+function colocarBotonFulls(a){
+    //boton fullscreen
+   var fulls=a.add.image(705,25,'fulls').setScale(0.7).setInteractive();
+   fulls.on('pointerup', function () {
+        if(a.scale.isFullscreen){
+            //button.setFrame(0);
+            a.scale.stopFullscreen();
+        }else{
+            //button.setFrame(1);
+            a.scale.startFullscreen();
+        }
+    }, a);
+}
+
+function colocarPlayer(a){
+    // The player and its settings
+    player = a.physics.add.sprite(100, 100, 'dude');
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.setBounce(0.2);
+    player.setCollideWorldBounds(true);
+
+    //  Our player animations, turning, walking left and walking right.
+    a.anims.create({
+        key: 'left',
+        frames: a.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    a.anims.create({
+        key: 'turn',
+        frames: [ { key: 'dude', frame: 4 } ],
+        frameRate: 20
+    });
+
+    a.anims.create({
+        key: 'right',
+        frames: a.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+        frameRate: 10,
+        repeat: -1
+    });
+}
+
+function detectarTeclado(a){
+    //  Input Events
+    cursors = a.input.keyboard.createCursorKeys();
+}
+
+function crearEstrellas(a){
+    //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
+    stars = a.physics.add.group({
+        key: 'star',
+        repeat: 11,
+        setXY: { x: 30, y: 0, stepX: 60 }
+    });
+
+    stars.children.iterate(function (child) {
+        //  Give each star a slightly different bounce
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+    });
+}
+
+function crearBombas(a){
+    //
+    bombs = a.physics.add.group();
+}
+
+function crearPuntaje(a){
+    //  The score
+    scoreText = a.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+}
+
+function agregarColisionConPlataformas(a){
+    //  Collide the player and the stars with the platforms
+    a.physics.add.collider(player, platforms);
+    a.physics.add.collider(stars, platforms);
+    a.physics.add.collider(bombs, platforms);
+}
+
+function detectarColisionPlayerStart(a){
+    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
+    a.physics.add.overlap(player, stars, collectStar, null, a);
+}
+
+function detectarColisionPlayerBomba(a){
+    ///
+    a.physics.add.collider(player, bombs, hitBomb, null, a);
+}
+
+function create ()
+{
+    colocarFondo(this);
+    colocarPlataformas(this);
+    colocarBotonIzq(this);
+    colocarBotonDer(this);
+    colocarBotonSalto(this);
+    colocarBotonFulls(this);
+    colocarPlayer(this);
+    detectarTeclado(this);
+    crearEstrellas(this);
+    crearBombas(this);
+    crearPuntaje(this);
+    agregarColisionConPlataformas(this);
+    detectarColisionPlayerStart(this);
+    detectarColisionPlayerBomba(this);
+}
+
+function update ()
+{
+    if (gameOver){
+        return;
+    }
+
+    if (cursors.left.isDown || moverLeft){
+        player.setVelocityX(-160);
+        player.anims.play('left', true);
+    }
+    else if (cursors.right.isDown || moverRight){
+        player.setVelocityX(160);
+        player.anims.play('right', true);
+    }
+    else{
+        player.setVelocityX(0);
+        player.anims.play('turn');
+    }
+
+    if (cursors.up.isDown && player.body.touching.down){
+        player.setVelocityY(-330);
+    }
+
+    if(player.body.touching.down && salto){
+        player.setVelocityY(-330);
+        salto=false;
+    }
+
+    //if(player.body.touching.down){
+    //    salto=false;
+    //}
+
+}
+
+function collectStar (player, star)
+{
+    star.disableBody(true, true);
+
+    //  Add and update the score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    if (stars.countActive(true) === 0)
+    {
+        //  A new batch of stars to collect
+        stars.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        });
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+
+    }
+}
+
+function hitBomb (player, bomb)
+{
+    this.physics.pause();
+
+    player.setTint(0xff0000);
+
+    player.anims.play('turn');
+
+    gameOver = true;
+}
+
+</script>
+
+</body>
+</html>
