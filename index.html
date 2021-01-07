@@ -38,22 +38,44 @@
             preload: function (){
                 this.load.image('portada', 'assets/portada.png');
                 this.load.image('play','assets/play.png');
+                this.load.image('fulls','assets/fulls.png');
             },
 
             create: function (){
-                //this.add.sprite(0, 0, 'portada').setOrigin(0,0);
-                this.add.image(0,0,'portada').setOrigin(0,0);
-
-                var play=this.add.image(570,300,'play').setInteractive();
-
-                play.on('pointerdown',function(pointer){
-                    this.scene.start('sceneB');
-                },this);
-
+                this.colocarFondo(this);
+                this.colocarBotonPlay(this);
+                this.colocarBotonFulls(this);
                 //this.input.once('pointerdown', function () {
                 //    console.log('From SceneA to SceneB');
                 //    this.scene.start('sceneB');
                 //}, this);
+            },
+
+            colocarFondo: function(a){
+                 //this.add.sprite(0, 0, 'portada').setOrigin(0,0);
+                a.add.image(0,0,'portada').setOrigin(0,0);
+            },
+
+            colocarBotonPlay:function(a){
+                var play=a.add.image(570,220,'play').setInteractive();
+
+                play.on('pointerdown',function(pointer){
+                    a.scene.start('sceneB');
+                },a);
+            },
+
+            colocarBotonFulls: function(a){
+                //boton fullscreen
+               var fulls=a.add.image(705,25,'fulls').setScale(0.7).setInteractive();
+               fulls.on('pointerup', function () {
+                    if(a.scale.isFullscreen){
+                        //button.setFrame(0);
+                        a.scale.stopFullscreen();
+                    }else{
+                        //button.setFrame(1);
+                        a.scale.startFullscreen();
+                    }
+                }, a);
             }
 
         });
@@ -78,6 +100,7 @@
                 this.load.image('bomb', 'assets/bomb.png');
                 this.load.image('fulls','assets/fulls.png');
                 this.load.image('ground', 'assets/platform.png');
+                this.load.image('plat','assets/plat.png');
                 this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
             },
 
@@ -100,7 +123,7 @@
 
             colocarFondo: function(a){
                 ////
-                a.add.sprite(300, 200, 'sky');
+                a.add.sprite(300, 200, 'sky').setAlpha(0.8);
             },
 
             colocarBotonDer: function(a){
@@ -177,8 +200,11 @@
 
             colocarPlataformas: function(a){
                 platforms = a.physics.add.staticGroup();
-                platforms.create(400, 360, 'ground').setScale(2).refreshBody();
-                platforms.setAlpha(0);
+                platforms.create(400, 360, 'ground').setScale(2).setAlpha(0).refreshBody();
+                platforms.create(0,227,'plat').setOrigin(0,0).refreshBody();
+                platforms.create(255,106,'plat').setOrigin(0,0).refreshBody();
+                platforms.create(540,200,'plat').setOrigin(0,0).refreshBody();
+                //platforms.setAlpha(0);
             },
 
             colocarPlayer: function(a){
