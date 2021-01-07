@@ -36,6 +36,15 @@
             },
 
             preload: function (){
+                /*
+                var progress=this.add.graphics();
+                this.load.on('progress',function(value){
+                    progress.clear();
+                    progress.fillStyle(0xffffff,1);
+                    progress.fillRect(0,270,800*value,60);
+                });
+                this.load.on('complete',function(){progress.destroy();});
+                */
                 this.load.image('portada', 'assets/portada.png');
                 this.load.image('play','assets/play.png');
                 this.load.image('fulls','assets/fulls.png');
@@ -210,7 +219,11 @@
             colocarPlayer: function(a){
                 // The player and its settings
                 player = a.physics.add.sprite(100, 100, 'dude');
-
+                //player.body.setOrigin(0,48);
+                //player.getCenter();
+                player.setSize(26,30);
+                player.setOffset(2,18);
+                //player.refreshBody();
                 //  Player physics properties. Give the little guy a slight bounce.
                 player.setBounce(0.2);
                 player.setCollideWorldBounds(true);
